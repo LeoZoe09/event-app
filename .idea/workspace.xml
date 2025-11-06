@@ -5,14 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="978338ce-996c-4820-87e9-206919b43105" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/app/api/events/[slug]/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/events/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/events/[slug]/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/BookEvent.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/EventDetails.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/actions/booking.actions.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/actions/event.actions.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/events/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/events/route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/events/[slug]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/events/[slug]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/EventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/EventCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/mongodb.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/mongodb.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/event6.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +44,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1&quot;: &quot;true&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;api-routes&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;event-details-page&quot;,
     &quot;js.debugger.nextJs.config.created.client&quot;: &quot;true&quot;,
     &quot;js.debugger.nextJs.config.created.server&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
@@ -97,6 +103,10 @@
       <workItem from="1762181825951" duration="948000" />
       <workItem from="1762236091130" duration="3791000" />
       <workItem from="1762246233352" duration="4093000" />
+      <workItem from="1762253435288" duration="6222000" />
+      <workItem from="1762262889044" duration="3104000" />
+      <workItem from="1762266051744" duration="669000" />
+      <workItem from="1762267648594" duration="12000" />
     </task>
     <servers />
   </component>
@@ -145,16 +155,5 @@
         </entry>
       </map>
     </option>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/app/layout.tsx</url>
-          <line>11</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

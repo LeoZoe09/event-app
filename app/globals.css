@@ -129,7 +129,6 @@
 
     ul {
         @apply list-disc list-inside;
-        list-style: none;
     }
 }
 
