@@ -1,71 +1,111 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+type FormState = {
+  title: string;
+  description: string;
+  overview: string;
+  venue: string;
+  location: string;
+  date: string;
+  time: string;
+  mode: 'offline' | 'online' | 'hybrid';
+  audience: string;
+  organizer: string;
+};
+
+const initialForm: FormState = {
+  title: '',
+  description: '',
+  overview: '',
+  venue: '',
+  location: '',
+  date: '',
+  time: '',
+  mode: 'offline',
+  audience: '',
+  organizer: '',
+};
 
 export default function CreateEventPage() {
   const router = useRouter();
 
-  // State für alle Felder deines Schemas
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    overview: '',
-    venue: '',
-    location: '',
-    date: '',
-    time: '',
-    mode: 'offline',
-    audience: '',
-    organizer: '',
-  });
-
+  const [form, setForm] = useState<FormState>(initialForm);
   const [tags, setTags] = useState<string[]>([]);
   const [agenda, setAgenda] = useState<string[]>([]);
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Event-Erstellung
+  const handleChange = useCallback(
+    (key: keyof FormState, value: string) => {
+      setForm((f) => ({ ...f, [key]: value }));
+    },
+    [],
+  );
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setImage(e.target.files?.[0] ?? null);
+  }, []);
+
+  const handleTagsChange = useCallback((value: string) => {
+    setTags(
+      value
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    );
+  }, []);
+
+  const handleAgendaChange = useCallback((value: string) => {
+    setAgenda(value.split('\n').map((s) => s.trim()).filter(Boolean));
+  }, []);
+
+  const memoForm = useMemo(() => form, [form]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // FormData anlegen, wie dein API-Handler es erwartet
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => formData.append(key, value));
-    formData.append('tags', JSON.stringify(tags));
-    formData.append('agenda', JSON.stringify(agenda));
-    if (image) formData.append('image', image);
-
     try {
+      const formData = new FormData();
+      Object.entries(memoForm).forEach(([key, value]) => formData.append(key, String(value)));
+      formData.append('tags', JSON.stringify(tags));
+      formData.append('agenda', JSON.stringify(agenda));
+      if (image) formData.append('image', image);
+
       const res = await fetch('/api/events', {
         method: 'POST',
         body: formData,
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Could not create event');
+        // try to read JSON error body, otherwise throw generic
+        let errMsg = 'Could not create event';
+        try {
+          const errBody = await res.json();
+          errMsg = errBody?.message ?? errMsg;
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errMsg);
       }
 
-      await res.json();
-      setForm({
-        title: '',
-        description: '',
-        overview: '',
-        venue: '',
-        location: '',
-        date: '',
-        time: '',
-        mode: 'offline',
-        audience: '',
-        organizer: ''
-      });
-      router.push('/'); // Nach erfolgreicher Erstellung zurück zur Startseite
-    } catch (err: any) {
-      setError(err.message);
+      // success — clear form and navigate
+      setForm(initialForm);
+      setTags([]);
+      setAgenda([]);
+      setImage(null);
+      router.push('/');
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'message' in err
+          ? (err as { message?: string }).message
+          : String(err);
+      setError(message || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -76,77 +116,82 @@ export default function CreateEventPage() {
       <h1 className="text-2xl font-semibold mb-6">Create New Event</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Titel */}
         <input
+          name="title"
+          aria-label="Event title"
           type="text"
           placeholder="Event Title"
           value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          onChange={(e) => handleChange('title', e.target.value)}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Beschreibung */}
         <textarea
+          name="description"
+          aria-label="Event description"
           placeholder="Description"
           value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          onChange={(e) => handleChange('description', e.target.value)}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Überblick */}
         <textarea
+          name="overview"
+          aria-label="Event overview"
           placeholder="Overview (short summary)"
           value={form.overview}
-          onChange={(e) => setForm({ ...form, overview: e.target.value })}
+          onChange={(e) => handleChange('overview', e.target.value)}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Veranstaltungsort & Ort */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
+            name="venue"
             type="text"
             placeholder="Venue"
             value={form.venue}
-            onChange={(e) => setForm({ ...form, venue: e.target.value })}
+            onChange={(e) => handleChange('venue', e.target.value)}
             required
             className="w-full border p-2 rounded"
           />
 
           <input
+            name="location"
             type="text"
             placeholder="Location"
             value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            onChange={(e) => handleChange('location', e.target.value)}
             required
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* Datum & Uhrzeit */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
+            name="date"
             type="date"
             value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            onChange={(e) => handleChange('date', e.target.value)}
             required
             className="w-full border p-2 rounded"
           />
           <input
+            name="time"
             type="time"
             value={form.time}
-            onChange={(e) => setForm({ ...form, time: e.target.value })}
+            onChange={(e) => handleChange('time', e.target.value)}
             required
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* Modus (online/offline/hybrid) */}
         <select
+          name="mode"
           value={form.mode}
-          onChange={(e) => setForm({ ...form, mode: e.target.value })}
+          onChange={(e) => handleChange('mode', e.target.value)}
           required
           className="w-full border p-2 rounded"
         >
@@ -155,50 +200,46 @@ export default function CreateEventPage() {
           <option value="hybrid">Hybrid</option>
         </select>
 
-        {/* Zielgruppe */}
         <input
+          name="audience"
           type="text"
           placeholder="Audience (e.g., Beginners, Developers, Students)"
           value={form.audience}
-          onChange={(e) => setForm({ ...form, audience: e.target.value })}
+          onChange={(e) => handleChange('audience', e.target.value)}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Veranstalter */}
         <input
+          name="organizer"
           type="text"
           placeholder="Organizer"
           value={form.organizer}
-          onChange={(e) => setForm({ ...form, organizer: e.target.value })}
+          onChange={(e) => handleChange('organizer', e.target.value)}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Bild */}
         <input
+          aria-label="Event image"
           type="file"
           accept="image/*"
-          onChange={(e) => setImage(e.target.files?.[0] || null)}
+          onChange={handleFileChange}
           required
           className="w-full border p-2 rounded"
         />
 
-        {/* Tags */}
         <input
           type="text"
           placeholder="Tags (comma separated)"
-          onChange={(e) => setTags(e.target.value.split(',').map((t) => t.trim()))}
-          required
+          onChange={(e) => handleTagsChange(e.target.value)}
           className="w-full border p-2 rounded"
         />
 
-        {/* Agenda */}
         <textarea
           placeholder="Agenda (one item per line)"
-          onChange={(e) => setAgenda(e.target.value.split('\n'))}
-          required
-          className="w-full border p-2 rounded height-32"
+          onChange={(e) => handleAgendaChange(e.target.value)}
+          className="w-full border p-2 rounded h-32"
         />
 
         {error && <p className="text-red-600">{error}</p>}
