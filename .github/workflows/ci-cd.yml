@@ -1,0 +1,196 @@
+# name: CI/CD Pipeline
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+# env:
+#   AWS_REGION: us-east-1
+#   ECR_REPOSITORY: event-app
+#   CONTAINER_NAME: event-app-container
+
+# jobs:
+#   lint-and-unit-tests:
+#     runs-on: ubuntu-latest
+#     name: Lint & Unit Tests
+
+#     strategy:
+#       matrix:
+#         node-version: [18.x]
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Use Node.js ${{ matrix.node-version }}
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: ${{ matrix.node-version }}
+#           cache: 'npm'
+
+#       - name: Install dependencies
+#         run: npm ci
+
+#       - name: Run ESLint
+#         run: npm run lint || true
+
+#       - name: Run unit tests
+#         run: npm test
+
+#   build-docker-image:
+#     needs: lint-and-unit-tests
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     name: Build Docker Image
+#     outputs:
+#       image: ${{ steps.build-image.outputs.image }}
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       - name: Login to Amazon ECR
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v1
+
+#       - name: Build, tag, and push image to Amazon ECR
+#         id: build-image
+#         env:
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           IMAGE_TAG: ${{ github.sha }}
+#         run: |
+#           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+#           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+#   deploy-to-staging:
+#     needs: build-docker-image
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     name: Deploy to Staging
+#     environment: staging
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       - name: Update ECS service (Staging)
+#         run: |
+#           aws ecs update-service \
+#             --cluster event-app-cluster-staging \
+#             --service event-app-service-staging \
+#             --force-new-deployment \
+#             --region ${{ env.AWS_REGION }}
+
+#       - name: Wait for deployment
+#         run: |
+#           aws ecs wait services-stable \
+#             --cluster event-app-cluster-staging \
+#             --services event-app-service-staging \
+#             --region ${{ env.AWS_REGION }}
+
+#   integration-tests:
+#     needs: deploy-to-staging
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     name: Integration Tests (Cucumber)
+#     environment: staging
+
+#     strategy:
+#       matrix:
+#         node-version: [18.x]
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Use Node.js ${{ matrix.node-version }}
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: ${{ matrix.node-version }}
+#           cache: 'npm'
+
+#       - name: Install dependencies
+#         run: npm ci
+
+#       - name: Wait for staging service to be ready
+#         run: |
+#           for i in {1..30}; do
+#             if curl -f http://${{ secrets.STAGING_URL }}/api/events > /dev/null 2>&1; then
+#               echo "Service is ready"
+#               exit 0
+#             fi
+#             echo "Waiting for service... attempt $i"
+#             sleep 10
+#           done
+#           exit 1
+
+#       - name: Run Cucumber integration tests
+#         env:
+#           STAGING_URL: ${{ secrets.STAGING_URL }}
+#           MONGODB_URI: ${{ secrets.STAGING_MONGODB_URI }}
+#         run: npm run test:integration || true
+
+#       - name: Upload test results
+#         if: always()
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: cucumber-reports
+#           path: reports/cucumber-report.html
+
+#   approve-production:
+#     needs: integration-tests
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     name: Approve Production Deployment
+#     environment:
+#       name: production
+#       # Requires manual approval in GitHub
+#     steps:
+#       - name: Production deployment approved
+#         run: echo "Production deployment has been approved"
+
+#   deploy-to-production:
+#     needs: [build-docker-image, approve-production]
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     name: Deploy to Production
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       - name: Update ECS service (Production)
+#         run: |
+#           aws ecs update-service \
+#             --cluster event-app-cluster-prod \
+#             --service event-app-service-prod \
+#             --force-new-deployment \
+#             --region ${{ env.AWS_REGION }}
+
+#       - name: Wait for deployment
+#         run: |
+#           aws ecs wait services-stable \
+#             --cluster event-app-cluster-prod \
+#             --services event-app-service-prod \
+#             --region ${{ env.AWS_REGION }}
